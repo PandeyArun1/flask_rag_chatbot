@@ -49,72 +49,73 @@ def store_in_chunks(chunks):
 
 
 
-def retrieve_relevant_chunks(query, top_k=3):
+def retrieve_relevant_chunks(query, top_k=3, strong_match_threshold=0.40):
     print(f"\n💬 [INFO] Received query: {query}")
 
     if not query or not query.strip():
-        print("⚠️ [WARN] Empty query received. Returning empty list.")
-        
         return []
-    
 
-    # Step 1 — Encode query
     try:
         query_embedding = model.encode(query).tolist()
-        print("🧠 [DEBUG] Query embedding created successfully.")
     except Exception as e:
-        print(f"❌ [ERROR] Failed to create query embedding: {e}")
+        print(f"❌ Embedding error: {e}")
         return []
 
-    # Step 2 — Check if any data exists
-    count = collection.count()
-    print(f"📦 [DEBUG] Total chunks currently in ChromaDB: {count}")
+    # Query ChromaDB
+    results = collection.query(
+        query_embeddings=[query_embedding],
+        n_results=top_k * 5,
+        include=["documents", "metadatas", "distances"]
+    )
 
-    if count == 0:
-        print("⚠️ [WARN] No data found in ChromaDB. Did you call /process_files first?")
+    if not results or not results["documents"][0]:
         return []
 
-    # Step 3 — Perform similarity search
-    try:
-        results = collection.query(
-            query_embeddings=[query_embedding],
-            n_results=top_k * 5,  # get more & then filter
-            include=['documents', 'metadatas', 'distances']
-        )
-        print("🔍 [DEBUG] Query executed successfully.")
-    except Exception as e:
-        print(f"❌ [ERROR] Chroma query failed: {e}")
-        return []
+    docs = results["documents"][0]
+    metas = results["metadatas"][0]
+    distances = results["distances"][0]
 
-    # Step 4 — Process results
-    retrieved_chunks = []
+    combined = list(zip(docs, metas, distances))
+    combined_sorted = sorted(combined, key=lambda x: x[2])
 
-    if not results or not results.get('documents') or len(results['documents'][0]) == 0:
-        print("⚠️ [WARN] No results returned from ChromaDB.")
-        return []
-
-    docs = results['documents'][0]
-    metas = results['metadatas'][0]
-    distances = results['distances'][0]
+    best_doc, best_meta, best_distance = combined_sorted[0]
+    best_filename = best_meta.get("filename", "Unknown")
 
     print("📏 Distances returned:", distances)
 
-    # Combine results
-    combined = list(zip(docs, metas, distances))
+    # ⭐ RULE 1: If strong match → return ONLY ONE
+    if best_distance < strong_match_threshold:
+        print("🎯 Strong match — Returning ONLY best chunk")
+        return [{
+            "filename": best_filename,
+            "distance": best_distance,
+            "content": best_doc
+        }]
 
-    # Sort by similarity (lower distance = more similar)
-    combined_sorted = sorted(combined, key=lambda x: x[2])
+    # ⭐ RULE 2: Filter out chunks with unrelated filenames
+    filtered = [
+        (doc, meta, dist)
+        for doc, meta, dist in combined_sorted
+        if meta.get("filename") == best_filename
+        or dist < best_distance + 0.40    # Similar content window
+    ]
 
-    # Take top_k best matches
-    best_chunks = combined_sorted[:top_k]
+    # If filtered becomes empty, fall back to top-k
+    if not filtered:
+        filtered = combined_sorted[:top_k]
 
-    for doc, meta, dist in best_chunks:
-        retrieved_chunks.append({
+    # ⭐ RULE 3: Return top-k from cleaned list
+    final = []
+    for doc, meta, dist in filtered[:top_k]:
+        final.append({
             "filename": meta.get("filename", "Unknown"),
             "distance": dist,
             "content": doc
         })
 
-    print(f"✅ [INFO] Final chunks returned: {len(retrieved_chunks)}")
+    return final
 
-    return retrieved_chunks
+
+
+
+
