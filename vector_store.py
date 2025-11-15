@@ -54,7 +54,9 @@ def retrieve_relevant_chunks(query, top_k=3):
 
     if not query or not query.strip():
         print("⚠️ [WARN] Empty query received. Returning empty list.")
+        
         return []
+    
 
     # Step 1 — Encode query
     try:
@@ -116,4 +118,3 @@ def retrieve_relevant_chunks(query, top_k=3):
     print(f"✅ [INFO] Final chunks returned: {len(retrieved_chunks)}")
 
     return retrieved_chunks
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                
