@@ -1,0 +1,52 @@
+Good morning.  I have to get ready to head out of town, but as far as the raspberry pis go, the Enclave 2A base is the central control unit and the Enclave 2A remote it the customer screen.
+
+I tried fixing the issues with this computer by deleting Arduino IDE and reinstalling it, and I forgot to re-install the esp32 boards.  Sorry about that.
+
+Is there anything I can do in the next few minutes to assist you?
+
+
+yes understood but you know after changing system  here need to setup all from scratch if all process setup goes smoothly in this system so we can did it , but if we face any issus for this system so here will take time 
+
+Okay.  I will speak with Ron and see if I can get something figured out.  He still has my laptop, which is where we have been setting up the sensors from.  Are you going to be able to set the raspberry pi's up today?
+
+okay we will setup code on new  raspberry pi 4 and raspberry pi zero, but we need laptop in which all things setup to solve esp32 microcontroller issues when you will provide access to that laptop?
+
+Yes let me speak with Ron.  There is no raspberry pi zero anymore, just two raspberry pi 4s.
+
+Yes, means customer screen raspberry pi and central pi
+
+
+Hi Jeff, Sensor is connected or not ?
+
+It is connected
+
+ok
+
+ESP32 getting sensor data and send data via Bluetooth 
+
+Great! It looks like the sensor is reading low, 18.13%.  Where are we at with adding recalibrating button?
+
+recalibrating button means , what you want to say ?
+
+The sensor has a function built into its coding that recalibrates it.  We need something in our program to tell it 
+to do that for times like this, when the sensor is not reading correctly.  We don't need it today, I have other sensors, 
+but I think it is going to be an important feature so we don't need to replace sensors just for being a little off..
+
+
+okay we understood you mean to say that if sensor by chance giving reading something wrong format or invalid so here need 
+to inform that Our sensor currently not giving reading in correct format
+
+Not wrong format, but incorrect reading.  
+
+Incorrect reading means always give reading below the 18.28 or something else 
+
+It means anything except the base percentage of 20.8.  That is the standard percentage of oxygen and the sensor should read that, 
+or close to that, whenever the system is not running.
+
+yes , our sensor read data like 20.8 21.9 etc as per current altitude
+
+Which is where is should be.  Sometimes the sensors get out of calibration, and they don't read correctly.  We just need to add a 
+button on the remote screen to calibrate the sensor.  The code to do that is found in the documentation from the manufacture.  I can send that to you if you wish.
+
+
+

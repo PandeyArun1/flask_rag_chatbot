@@ -1,0 +1,32 @@
+http://192.168.1.171:5000/guest-login?identifier=F4:4D:30:4D:8F:75
+
+
+flask db upgrade
+flask run --host=0.0.0.0
+
+
+
+192.168.1.52
+23
+
+
+
+git switch origin/qa/devlopment
+
+connect.raspberry pi
+
+goto raspberry lot base and perform edit operation on lot and setup the timers.
+
+Jr Master
+192.168.20.209
+
+018
+192.168.20.207
+
+118
+192.168.20.206
+
+122
+192.168.20.208
+
+cb0100

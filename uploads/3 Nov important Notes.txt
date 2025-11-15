@@ -1,0 +1,12 @@
+3 Nov important Notes
+
+flask --app app.py run --debug
+
+
+username and password setup for Zones Pi Credentials
+pi
+coding@12345
+
+
+Made changes in the Zones Pi Credentials module. Earlier, the password was stored as plain text in the database,
+it is now encrypted using Fernet for improved security.

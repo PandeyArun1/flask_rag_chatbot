@@ -1,0 +1,4 @@
+Worked on the Zones Pi Credentials module.
+Implemented password encryption using Fernet to securely store credentials in the database.
+Enhanced overall security by preventing storage of plain-text passwords.
+Applied the same encryption logic to the Initial Setup page for handling of credentials in the system.

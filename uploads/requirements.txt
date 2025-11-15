@@ -1,0 +1,8 @@
+Flask>=2.0
+Flask-Login
+Flask-SQLAlchemy
+Flask-Migrate
+cryptography
+
+# For development
+pytest
