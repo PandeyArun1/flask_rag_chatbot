@@ -8,32 +8,32 @@ from config.config import client
 
 def store_in_chunks(chunks):
     try:
-        existing=collection.get()
-        existing_texts=set(existing['documents']) if existing and 'documents' in existing else set()
+        existing = collection.get()
+        existing_texts = set(existing['documents']) if existing and 'documents' in existing else set()
     except Exception as e:
         print("Warning: Could not fetch existing documents:", e)
         existing_texts = set()
 
-    ids=[]
-    texts=[]
-    embeddings=[]
-    metadatas=[]
+    ids = []
+    texts = []
+    embeddings = []
+    metadatas = []
 
-    chunk_id=1
+    chunk_id = 1
     for chunk in chunks:
-        text=chunk['chunks']
-        filename=chunk['filename']
+        text = chunk['chunks']
+        filename = chunk['filename']
 
         if text in existing_texts:
-            print(f"skipping duplicate chunk from {filename}")
+            print(f"Skipping duplicate chunk from {filename}")
             continue
-    
-        embedding=model.encode(text).tolist()
+
+        embedding = model.encode(text).tolist()
         ids.append(f"chunk_{chunk_id}")
         texts.append(text)
         embeddings.append(embedding)
-        metadatas.append({"filename":filename})
-        chunk_id+=1
+        metadatas.append({"filename": filename})
+        chunk_id += 1
 
     if texts:
         collection.add(
@@ -45,9 +45,6 @@ def store_in_chunks(chunks):
         print(f"Stored {len(texts)} new chunks in ChromaDB.")
     else:
         print("No new chunks to add (all were duplicates).")
-
-
-
 
 def retrieve_relevant_chunks(query, top_k=3, strong_match_threshold=0.40):
     print(f"\n💬 [INFO] Received query: {query}")
@@ -61,7 +58,6 @@ def retrieve_relevant_chunks(query, top_k=3, strong_match_threshold=0.40):
         print(f"❌ Embedding error: {e}")
         return []
 
-    # Query ChromaDB
     results = collection.query(
         query_embeddings=[query_embedding],
         n_results=top_k * 5,
@@ -83,7 +79,7 @@ def retrieve_relevant_chunks(query, top_k=3, strong_match_threshold=0.40):
 
     print("📏 Distances returned:", distances)
 
-    # ⭐ RULE 1: If strong match → return ONLY ONE
+    # Strong match → ONLY ONE
     if best_distance < strong_match_threshold:
         print("🎯 Strong match — Returning ONLY best chunk")
         return [{
@@ -92,19 +88,17 @@ def retrieve_relevant_chunks(query, top_k=3, strong_match_threshold=0.40):
             "content": best_doc
         }]
 
-    # ⭐ RULE 2: Filter out chunks with unrelated filenames
+    # Filter by similar content or same file
     filtered = [
         (doc, meta, dist)
         for doc, meta, dist in combined_sorted
         if meta.get("filename") == best_filename
-        or dist < best_distance + 0.40    # Similar content window
+        or dist < best_distance + 0.40
     ]
 
-    # If filtered becomes empty, fall back to top-k
     if not filtered:
         filtered = combined_sorted[:top_k]
 
-    # ⭐ RULE 3: Return top-k from cleaned list
     final = []
     for doc, meta, dist in filtered[:top_k]:
         final.append({
@@ -114,7 +108,6 @@ def retrieve_relevant_chunks(query, top_k=3, strong_match_threshold=0.40):
         })
 
     return final
-
 
 # def retrieve_relevant_chunks(query, top_k=3, strong_match_threshold=0.80):
 #     print(f"\n💬 [INFO] Received query: {query}")
@@ -180,17 +173,15 @@ def retrieve_relevant_chunks(query, top_k=3, strong_match_threshold=0.40):
 
 
 
-
 def generate_answer_with_gpt_4o(question, relevant_chunks):
+    # Build clean context
     context_text = "\n\n".join(
-        chunk.get("content", "") if isinstance(chunk, dict)
-        else str(chunk)
-        for chunk in relevant_chunks
+        chunk.get("content", "") for chunk in relevant_chunks
     )
 
     prompt = f"""
-        Use ONLY the following context to answer the question.
-        If the answer is not present, reply: "Information not available in the documents."
+Use ONLY the following context to answer the question.
+If the answer is not present, reply: "Information not available in the documents."
 
 ### Context:
 {context_text}
@@ -202,10 +193,10 @@ def generate_answer_with_gpt_4o(question, relevant_chunks):
 """
 
     response = client.chat.completions.create(
-        model="llama-3.1-8b-instant",    # WORKING model (2025)
+        model="llama-3.1-8b-instant",
         messages=[{"role": "user", "content": prompt}],
         temperature=0.2
     )
 
+    #  Groq uses .message.content (dot notation)
     return response.choices[0].message.content
-
