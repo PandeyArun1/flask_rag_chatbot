@@ -4,7 +4,7 @@ model=SentenceTransformer('all-MiniLM-L6-v2')
 
 chroma_client=chromadb.Client()
 collection=chroma_client.get_or_create_collection(name="documents")
-
+from config.config import client
 
 def store_in_chunks(chunks):
     try:
@@ -116,6 +116,96 @@ def retrieve_relevant_chunks(query, top_k=3, strong_match_threshold=0.40):
     return final
 
 
+# def retrieve_relevant_chunks(query, top_k=3, strong_match_threshold=0.80):
+#     print(f"\n💬 [INFO] Received query: {query}")
+
+#     if not query or not query.strip():
+#         return []
+
+#     try:
+#         query_embedding = model.encode(query).tolist()
+#     except Exception as e:
+#         print(f"❌ Embedding error: {e}")
+#         return []
+
+#     results = collection.query(
+#         query_embeddings=[query_embedding],
+#         n_results=top_k * 5,
+#         include=["documents", "metadatas", "distances"]
+#     )
+
+#     if not results or not results["documents"][0]:
+#         return []
+
+#     docs = results["documents"][0]
+#     metas = results["metadatas"][0]
+#     distances = results["distances"][0]
+
+#     combined = list(zip(docs, metas, distances))
+#     combined_sorted = sorted(combined, key=lambda x: x[2])
+
+#     best_doc, best_meta, best_distance = combined_sorted[0]
+#     best_filename = best_meta.get("filename", "Unknown")
+
+#     print("📏 Distances returned:", distances)
+
+#     # STRONG MATCH → ONLY ONE
+#     if best_distance < strong_match_threshold:
+#         return [{
+#             "text": best_doc,
+#             "filename": best_filename,
+#             "distance": best_distance
+#         }]
+
+#     # FILTER BY FILE OR SIMILARITY WINDOW
+#     filtered = [
+#         (doc, meta, dist)
+#         for doc, meta, dist in combined_sorted
+#         if meta.get("filename") == best_filename
+#            or dist < best_distance + 0.40
+#     ]
+
+#     if not filtered:
+#         filtered = combined_sorted[:top_k]
+
+#     final = []
+#     for doc, meta, dist in filtered[:top_k]:
+#         final.append({
+#             "text": doc,
+#             "filename": meta.get("filename", "Unknown"),
+#             "distance": dist
+#         })
+
+#     return final
 
 
+
+
+def generate_answer_with_gpt_4o(question, relevant_chunks):
+    context_text = "\n\n".join(
+        chunk.get("content", "") if isinstance(chunk, dict)
+        else str(chunk)
+        for chunk in relevant_chunks
+    )
+
+    prompt = f"""
+        Use ONLY the following context to answer the question.
+        If the answer is not present, reply: "Information not available in the documents."
+
+### Context:
+{context_text}
+
+### Question:
+{question}
+
+### Answer:
+"""
+
+    response = client.chat.completions.create(
+        model="llama-3.1-8b-instant",    # WORKING model (2025)
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.2
+    )
+
+    return response.choices[0].message.content
 

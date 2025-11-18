@@ -1,7 +1,7 @@
 from flask import Flask,request,jsonify,render_template
 app=Flask(__name__)
 import os
-from vector_store import store_in_chunks,retrieve_relevant_chunks
+from vector_store import store_in_chunks,retrieve_relevant_chunks,generate_answer_with_gpt_4o
 
 UPLOAD_FOLDER='uploads'
 os.makedirs(UPLOAD_FOLDER,exist_ok=True)
@@ -63,29 +63,27 @@ def upload_file():
     })
 
 
-# @app.route('/process_files',methods=['GET'])
-# def process_files():
-#     folder='uploads'
 
-#     print("\n📂 [INFO] Starting document processing...")
 
-#     documents=load_documents(folder)
-#     print("Documents loaded:", len(documents))
+# @app.route('/query',methods=['POST'])
+# def ask_question():
+#     data=request.get_json()
+#     question=data.get('question','')
 
-#     all_chunks=[]
-#     for doc in documents:
-#         chunks=splits_into_chunks(doc['content'])
-#         for chunk in chunks:
-#             all_chunks.append({"filename":doc['filename'], "chunks":chunk})
+#     if not question:
+#         return jsonify({"error":"Question is required"}),400
     
-#     if all_chunks:
-#         splits_into_chunks(all_chunks)
+#     relevant_chunks=retrieve_relevant_chunks(question,top_k=3)
+    
+#     print(f"🔍 [DEBUG] Retrieved {len(relevant_chunks)} relevant chunks.")
+
 
 #     return jsonify({
-#         "total_files":len(documents),
-#         "total_chunks":len(all_chunks),
-#         "sample_chunk":all_chunks[0] if all_chunks else None
-#     })
+#         "question":question,            
+#             "relevant_chunks":relevant_chunks,                
+#                     })
+
+
 
 
 @app.route('/query',methods=['POST'])
@@ -96,15 +94,30 @@ def ask_question():
     if not question:
         return jsonify({"error":"Question is required"}),400
     
-    relevant_chunks=retrieve_relevant_chunks(question,top_k=3)
+    relevant_chunks=retrieve_relevant_chunks(question)
     
     print(f"🔍 [DEBUG] Retrieved {len(relevant_chunks)} relevant chunks.")
 
 
+    if not relevant_chunks:
+        return jsonify({
+            "question":question,            
+                "relevant_chunks":relevant_chunks,   
+                            "source": None
+                
+                        })
+    final_answer=generate_answer_with_gpt_4o(question,relevant_chunks)
+
+
+    best=relevant_chunks[0]
+
     return jsonify({
         "question":question,            
-            "relevant_chunks":relevant_chunks,                
-                    })
+        "answer": final_answer,
+        "source": best["filename"],
+        "distance": best["distance"],
+        "chunks_used":len(relevant_chunks)
+    })
 
 
 
