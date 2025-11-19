@@ -2,10 +2,17 @@ import chromadb
 from sentence_transformers import SentenceTransformer
 model=SentenceTransformer('all-MiniLM-L6-v2')
 
-chroma_client=chromadb.Client()
-collection=chroma_client.get_or_create_collection(name="documents")
+# chroma_client=chromadb.Client()
+chroma_client=chromadb.PersistentClient(path="vector_db")
+collection=chroma_client.get_or_create_collection(name="documents",metadata={"hnsw:space":"cosine"})
 from config.config import client
 
+# Debug: show number of docs stored on startup
+print("📦 ChromaDB startup check:")
+try:
+    print("Total documents loaded:", collection.count())
+except:
+    print("⚠️ Could not count documents")
 def store_in_chunks(chunks):
     try:
         existing = collection.get()
@@ -180,17 +187,17 @@ def generate_answer_with_gpt_4o(question, relevant_chunks):
     )
 
     prompt = f"""
-Use ONLY the following context to answer the question.
-If the answer is not present, reply: "Information not available in the documents."
+        Use ONLY the following context to answer the question.
+        If the answer is not present, reply: "Information not available in the documents."
 
-### Context:
-{context_text}
+        ### Context:
+        {context_text}
 
-### Question:
-{question}
+        ### Question:
+        {question}
 
-### Answer:
-"""
+        ### Answer:
+        """
 
     response = client.chat.completions.create(
         model="llama-3.1-8b-instant",
